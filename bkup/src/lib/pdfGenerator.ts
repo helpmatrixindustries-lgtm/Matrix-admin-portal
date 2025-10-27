@@ -1,0 +1,501 @@
+import jsPDF from 'jspdf';
+import QRCode from 'qrcode';
+
+export interface DocumentData {
+  id: string;
+  type: 'certificate' | 'offer_letter' | 'lor';
+  student_name: string;
+  student_email: string;
+  internship_domain: string;
+  issue_date: string;
+  additional_fields?: {
+    duration?: string;
+    performance?: string;
+    position?: string;
+    start_date?: string;
+    stipend?: string;
+  };
+}
+
+const addHeaderFooter = (doc: jsPDF, logoDataUrl: string) => {
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  
+  // Add logo
+  doc.addImage(logoDataUrl, 'JPEG', 15, 10, 25, 25);
+  
+  // Company name
+  doc.setFontSize(20);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(33, 128, 141); // #21808D
+  doc.text('MATRIX INDUSTRIES', 45, 20);
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(100, 100, 100);
+  doc.text('Innovation in Technology & Engineering', 45, 28);
+  
+  // Footer
+  doc.setFontSize(8);
+  doc.setTextColor(120, 120, 120);
+  doc.text('Matrix Industries Pvt. Ltd. | www.matrixindustries.com', pageWidth / 2, pageHeight - 10, { align: 'center' });
+};
+
+export const generateCertificatePDF = async (data: DocumentData, logoDataUrl: string): Promise<Blob> => {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  
+  // Elegant background gradient effect (using rectangles)
+  doc.setFillColor(245, 250, 252);
+  doc.rect(0, 0, pageWidth, pageHeight, 'F');
+  
+  // Decorative corner elements
+  doc.setFillColor(33, 128, 141);
+  doc.triangle(0, 0, 30, 0, 0, 30, 'F');
+  doc.triangle(pageWidth, 0, pageWidth - 30, 0, pageWidth, 30, 'F');
+  
+  // Main decorative border with double lines
+  doc.setDrawColor(33, 128, 141);
+  doc.setLineWidth(2);
+  doc.rect(15, 20, pageWidth - 30, pageHeight - 40);
+  
+  doc.setLineWidth(0.5);
+  doc.rect(18, 23, pageWidth - 36, pageHeight - 46);
+  
+  // Inner accent border
+  doc.setDrawColor(50, 184, 198);
+  doc.setLineWidth(0.3);
+  doc.rect(20, 25, pageWidth - 40, pageHeight - 50);
+  
+  // Logo and header
+  doc.addImage(logoDataUrl, 'JPEG', pageWidth / 2 - 15, 32, 30, 30);
+  
+  // Company name under logo
+  doc.setFontSize(16);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(33, 128, 141);
+  doc.text('MATRIX INDUSTRIES', pageWidth / 2, 68, { align: 'center' });
+  
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'italic');
+  doc.setTextColor(80, 80, 80);
+  doc.text('Innovation in Technology & Engineering', pageWidth / 2, 74, { align: 'center' });
+  
+  // Certificate title with decorative lines
+  doc.setDrawColor(39, 151, 86);
+  doc.setLineWidth(0.8);
+  doc.line(35, 90, 75, 90);
+  doc.line(pageWidth - 75, 90, pageWidth - 35, 90);
+  
+  doc.setFontSize(26);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(33, 128, 141);
+  doc.text('INTERNSHIP COMPLETION CERTIFICATE', pageWidth / 2, 95, { align: 'center' });
+  
+  // Decorative underline
+  doc.setDrawColor(50, 184, 198);
+  doc.setLineWidth(0.5);
+  doc.line(40, 98, pageWidth - 40, 98);
+  
+  // Certificate body
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(60, 60, 60);
+  doc.text('This is to certify that', pageWidth / 2, 115, { align: 'center' });
+  
+  // Student name with decorative box
+  doc.setFillColor(250, 252, 253);
+  doc.setDrawColor(50, 184, 198);
+  doc.setLineWidth(0.3);
+  doc.roundedRect(30, 122, pageWidth - 60, 18, 2, 2, 'FD');
+  
+  doc.setFontSize(24);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(33, 128, 141);
+  doc.text(data.student_name.toUpperCase(), pageWidth / 2, 133, { align: 'center' });
+  
+  // Completion text
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(60, 60, 60);
+  doc.text('has successfully completed the internship program in', pageWidth / 2, 152, { align: 'center' });
+  
+  // Domain with highlight
+  doc.setFillColor(39, 151, 86, 10);
+  doc.roundedRect(40, 158, pageWidth - 80, 14, 2, 2, 'F');
+  
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(39, 151, 86);
+  doc.text(data.internship_domain.toUpperCase(), pageWidth / 2, 167, { align: 'center' });
+  
+  // Duration and date info box
+  let infoY = 185;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(70, 70, 70);
+  
+  if (data.additional_fields?.duration) {
+    doc.text(`Duration: ${data.additional_fields.duration}`, pageWidth / 2, infoY, { align: 'center' });
+    infoY += 7;
+  }
+  
+  doc.text(`Issue Date: ${new Date(data.issue_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, pageWidth / 2, infoY, { align: 'center' });
+  
+  // QR Code with border
+  const qrCodeUrl = `${window.location.origin}/verify/${data.id}`;
+  const qrDataUrl = await QRCode.toDataURL(qrCodeUrl, { width: 300, margin: 1 });
+  
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(50, 184, 198);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(pageWidth / 2 - 21, 200, 42, 42, 2, 2, 'FD');
+  doc.addImage(qrDataUrl, 'PNG', pageWidth / 2 - 18, 203, 36, 36);
+  
+  doc.setFontSize(7);
+  doc.setTextColor(100, 100, 100);
+  doc.text('Scan to verify', pageWidth / 2, 248, { align: 'center' });
+  
+  // Signature section with professional layout
+  const sigY = 258;
+  
+  // Left signature
+  doc.setLineWidth(0.3);
+  doc.setDrawColor(100, 100, 100);
+  doc.line(35, sigY, 85, sigY);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(60, 60, 60);
+  doc.text('Authorized Signatory', 60, sigY + 6, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text('Matrix Industries', 60, sigY + 11, { align: 'center' });
+  
+  // Date stamp
+  doc.line(pageWidth - 85, sigY, pageWidth - 35, sigY);
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.text('Date of Issue', pageWidth - 60, sigY + 6, { align: 'center' });
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(8);
+  doc.text(new Date(data.issue_date).toLocaleDateString(), pageWidth - 60, sigY + 11, { align: 'center' });
+  
+  // Footer
+  doc.setFontSize(7);
+  doc.setTextColor(120, 120, 120);
+  doc.text('Matrix Industries Pvt. Ltd. | www.matrixindustries.com | Email: info@matrixindustries.com', pageWidth / 2, pageHeight - 8, { align: 'center' });
+  
+  doc.setFontSize(6);
+  doc.setTextColor(150, 150, 150);
+  doc.text(`Certificate ID: ${data.id.substring(0, 8)}`, pageWidth / 2, pageHeight - 4, { align: 'center' });
+  
+  return doc.output('blob');
+};
+
+export const generateOfferLetterPDF = async (data: DocumentData, logoDataUrl: string): Promise<Blob> => {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  const pageHeight = doc.internal.pageSize.getHeight();
+  
+  // Professional letterhead background
+  doc.setFillColor(33, 128, 141);
+  doc.rect(0, 0, pageWidth, 45, 'F');
+  
+  // Logo in header
+  doc.addImage(logoDataUrl, 'JPEG', 15, 10, 25, 25);
+  
+  // Company name in header
+  doc.setFontSize(22);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(255, 255, 255);
+  doc.text('MATRIX INDUSTRIES', 45, 22);
+  
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.text('Innovation in Technology & Engineering', 45, 30);
+  
+  // Contact info in header
+  doc.setFontSize(7);
+  doc.text('www.matrixindustries.com | info@matrixindustries.com', 45, 36);
+  
+  // Accent line
+  doc.setDrawColor(50, 184, 198);
+  doc.setLineWidth(1.5);
+  doc.line(0, 45, pageWidth, 45);
+  
+  // Letter title
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(33, 128, 141);
+  doc.text('INTERNSHIP OFFER LETTER', pageWidth / 2, 60, { align: 'center' });
+  
+  // Reference number and date box
+  doc.setFillColor(245, 250, 252);
+  doc.roundedRect(15, 70, pageWidth - 30, 20, 2, 2, 'F');
+  
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(70, 70, 70);
+  doc.text(`Reference No: MI/INT/${new Date(data.issue_date).getFullYear()}/${data.id.substring(0, 6).toUpperCase()}`, 20, 78);
+  doc.text(`Date: ${new Date(data.issue_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 20, 85);
+  
+  // Recipient details
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(50, 50, 50);
+  doc.text('To,', 20, 102);
+  
+  doc.setFontSize(12);
+  doc.setTextColor(33, 128, 141);
+  doc.text(data.student_name, 20, 110);
+  
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(80, 80, 80);
+  doc.text(data.student_email, 20, 117);
+  
+  // Salutation
+  doc.setFontSize(11);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(50, 50, 50);
+  doc.text('Dear ' + data.student_name.split(' ')[0] + ',', 20, 132);
+  
+  // Letter body
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(60, 60, 60);
+  
+  const bodyLines = [
+    'We are delighted to offer you an internship position with Matrix Industries. We were',
+    'impressed by your qualifications and believe you will be a valuable addition to our team.',
+  ];
+  
+  let yPos = 142;
+  bodyLines.forEach(line => {
+    doc.text(line, 20, yPos);
+    yPos += 6;
+  });
+  
+  // Offer details box
+  yPos += 8;
+  doc.setFillColor(250, 252, 253);
+  doc.setDrawColor(50, 184, 198);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(20, yPos - 5, pageWidth - 40, 52, 2, 2, 'FD');
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(33, 128, 141);
+  doc.text('INTERNSHIP DETAILS', 25, yPos + 2);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(60, 60, 60);
+  doc.setFontSize(9.5);
+  
+  const details = [
+    { label: 'Position:', value: data.additional_fields?.position || 'Intern' },
+    { label: 'Department:', value: data.internship_domain },
+    { label: 'Start Date:', value: data.additional_fields?.start_date ? new Date(data.additional_fields.start_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'To be confirmed' },
+    { label: 'Duration:', value: data.additional_fields?.duration || 'As per agreement' },
+  ];
+  
+  if (data.additional_fields?.stipend) {
+    details.push({ label: 'Stipend:', value: data.additional_fields.stipend });
+  }
+  
+  let detailY = yPos + 10;
+  details.forEach(detail => {
+    doc.setFont('helvetica', 'bold');
+    doc.text(detail.label, 25, detailY);
+    doc.setFont('helvetica', 'normal');
+    doc.text(detail.value, 60, detailY);
+    detailY += 7;
+  });
+  
+  // Continuation
+  yPos += 60;
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(60, 60, 60);
+  
+  const closingLines = [
+    'During your internship, you will gain valuable hands-on experience and work alongside our',
+    'experienced professionals. We are confident that this opportunity will enhance your skills',
+    'and contribute to your professional development.',
+    '',
+    'Please sign and return this letter by ' + new Date(new Date(data.issue_date).getTime() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) + ' to confirm',
+    'your acceptance of this offer.',
+  ];
+  
+  closingLines.forEach(line => {
+    doc.text(line, 20, yPos);
+    yPos += 6;
+  });
+  
+  // Closing
+  yPos += 8;
+  doc.text('We look forward to welcoming you to Matrix Industries.', 20, yPos);
+  
+  // Signature section
+  yPos += 18;
+  doc.setFontSize(10);
+  doc.text('Sincerely,', 20, yPos);
+  
+  yPos += 15;
+  doc.setLineWidth(0.3);
+  doc.setDrawColor(100, 100, 100);
+  doc.line(20, yPos, 70, yPos);
+  
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(50, 50, 50);
+  doc.text('Authorized Signatory', 20, yPos + 6);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setFontSize(9);
+  doc.setTextColor(80, 80, 80);
+  doc.text('Human Resources Department', 20, yPos + 12);
+  doc.text('Matrix Industries Pvt. Ltd.', 20, yPos + 18);
+  
+  // Acceptance section
+  const acceptY = yPos + 30;
+  doc.setFillColor(245, 250, 252);
+  doc.roundedRect(20, acceptY, pageWidth - 40, 30, 2, 2, 'F');
+  
+  doc.setFontSize(9);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(33, 128, 141);
+  doc.text('ACCEPTANCE', 25, acceptY + 7);
+  
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(60, 60, 60);
+  doc.text('I, ' + data.student_name + ', accept this internship offer.', 25, acceptY + 14);
+  
+  doc.setLineWidth(0.3);
+  doc.setDrawColor(100, 100, 100);
+  doc.line(25, acceptY + 24, 85, acceptY + 24);
+  doc.line(pageWidth - 85, acceptY + 24, pageWidth - 25, acceptY + 24);
+  
+  doc.setFontSize(8);
+  doc.text('Signature', 55, acceptY + 28, { align: 'center' });
+  doc.text('Date', pageWidth - 55, acceptY + 28, { align: 'center' });
+  
+  // QR Code with professional styling
+  const qrCodeUrl = `${window.location.origin}/verify/${data.id}`;
+  const qrDataUrl = await QRCode.toDataURL(qrCodeUrl, { width: 250, margin: 1 });
+  
+  doc.setFillColor(255, 255, 255);
+  doc.setDrawColor(50, 184, 198);
+  doc.setLineWidth(0.5);
+  doc.roundedRect(pageWidth - 41, 70, 32, 32, 2, 2, 'FD');
+  doc.addImage(qrDataUrl, 'PNG', pageWidth - 39, 72, 28, 28);
+  
+  doc.setFontSize(6);
+  doc.setTextColor(100, 100, 100);
+  doc.text('Verify Offer', pageWidth - 25, 105, { align: 'center' });
+  
+  // Footer
+  doc.setFillColor(240, 240, 240);
+  doc.rect(0, pageHeight - 12, pageWidth, 12, 'F');
+  
+  doc.setFontSize(7);
+  doc.setTextColor(100, 100, 100);
+  doc.text('Matrix Industries Pvt. Ltd. | Regd. Office: Technology Park, Innovation District', pageWidth / 2, pageHeight - 7, { align: 'center' });
+  
+  doc.setFontSize(6);
+  doc.setTextColor(130, 130, 130);
+  doc.text(`Document ID: ${data.id.substring(0, 16)} | This is a system-generated document`, pageWidth / 2, pageHeight - 3, { align: 'center' });
+  
+  return doc.output('blob');
+};
+
+export const generateLoRPDF = async (data: DocumentData, logoDataUrl: string): Promise<Blob> => {
+  const doc = new jsPDF();
+  const pageWidth = doc.internal.pageSize.getWidth();
+  
+  addHeaderFooter(doc, logoDataUrl);
+  
+  // Letter title
+  doc.setFontSize(18);
+  doc.setFont('helvetica', 'bold');
+  doc.setTextColor(33, 128, 141);
+  doc.text('LETTER OF RECOMMENDATION', pageWidth / 2, 50, { align: 'center' });
+  
+  // Date
+  doc.setFontSize(10);
+  doc.setFont('helvetica', 'normal');
+  doc.setTextColor(80, 80, 80);
+  doc.text(`Date: ${new Date(data.issue_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, 20, 65);
+  
+  // Salutation
+  doc.setFontSize(11);
+  doc.text('To Whom It May Concern,', 20, 80);
+  
+  // Letter body
+  const performance = data.additional_fields?.performance || 'Good';
+  const performanceText = performance === 'Excellent' 
+    ? 'exceptional dedication, outstanding technical skills, and remarkable professionalism'
+    : 'strong work ethic, good technical abilities, and professional conduct';
+  
+  const bodyLines = [
+    `This letter is to recommend ${data.student_name} who completed an internship`,
+    `with Matrix Industries in the ${data.internship_domain} department.`,
+    '',
+    `During the internship period${data.additional_fields?.duration ? ' of ' + data.additional_fields.duration : ''}, ${data.student_name.split(' ')[0]}`,
+    `demonstrated ${performanceText}.`,
+    performance === 'Excellent' ? `${data.student_name.split(' ')[0]} consistently exceeded expectations and` : `${data.student_name.split(' ')[0]}`,
+    performance === 'Excellent' ? 'made significant contributions to our projects.' : 'contributed effectively to our team projects.',
+    '',
+    `${data.student_name.split(' ')[0]} showed excellent learning capabilities and adapted quickly to`,
+    'our work environment. The technical skills and knowledge gained during this',
+    'internship have prepared them well for future professional endeavors.',
+    '',
+    'We highly recommend ' + data.student_name.split(' ')[0] + ' for future opportunities and believe',
+    'they will be a valuable asset to any organization.',
+  ];
+  
+  let yPos = 95;
+  bodyLines.forEach(line => {
+    doc.text(line, 20, yPos);
+    yPos += 7;
+  });
+  
+  // QR Code
+  const qrCodeUrl = `${window.location.origin}/verify/${data.id}`;
+  const qrDataUrl = await QRCode.toDataURL(qrCodeUrl, { width: 150, margin: 1 });
+  doc.addImage(qrDataUrl, 'PNG', pageWidth - 50, 170, 30, 30);
+  
+  // Signature
+  doc.text('Best Regards,', 20, yPos + 20);
+  doc.line(20, yPos + 35, 70, yPos + 35);
+  doc.text('Authorized Signatory', 20, yPos + 42);
+  doc.text('Matrix Industries', 20, yPos + 49);
+  
+  // Document ID
+  doc.setFontSize(8);
+  doc.setTextColor(120, 120, 120);
+  doc.text(`LoR ID: ${data.id}`, pageWidth / 2, 280, { align: 'center' });
+  
+  return doc.output('blob');
+};
+
+export const loadLogoAsDataUrl = async (logoUrl: string): Promise<string> => {
+  return new Promise((resolve, reject) => {
+    const img = new Image();
+    img.crossOrigin = 'anonymous';
+    img.onload = () => {
+      const canvas = document.createElement('canvas');
+      canvas.width = img.width;
+      canvas.height = img.height;
+      const ctx = canvas.getContext('2d');
+      if (ctx) {
+        ctx.drawImage(img, 0, 0);
+        resolve(canvas.toDataURL('image/jpeg'));
+      } else {
+        reject(new Error('Failed to get canvas context'));
+      }
+    };
+    img.onerror = reject;
+    img.src = logoUrl;
+  });
+};
