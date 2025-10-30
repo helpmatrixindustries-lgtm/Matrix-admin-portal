@@ -26,6 +26,7 @@ const CreateDocument = () => {
     performance: 'Good',
     position: '',
     start_date: '',
+    end_date: '',
     stipend: '',
   });
 
@@ -62,6 +63,7 @@ const CreateDocument = () => {
             performance: formData.performance,
             position: formData.position,
             start_date: formData.start_date,
+            end_date: formData.end_date,
             stipend: formData.stipend,
           },
           created_by: 'admin',
@@ -253,6 +255,16 @@ const CreateDocument = () => {
                       type="date"
                       value={formData.start_date}
                       onChange={(e) => setFormData({ ...formData, start_date: e.target.value })}
+                      required
+                    />
+                  </div>
+                  <div className="space-y-2">
+                    <Label htmlFor="end_date">End Date (Optional - defaults to 4 weeks from start)</Label>
+                    <Input
+                      id="end_date"
+                      type="date"
+                      value={formData.end_date}
+                      onChange={(e) => setFormData({ ...formData, end_date: e.target.value })}
                     />
                   </div>
                   <div className="space-y-2">

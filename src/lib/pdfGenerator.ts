@@ -1,6 +1,7 @@
 import jsPDF from 'jspdf';
 import QRCode from 'qrcode';
 import { getVerificationUrl } from './settings';
+import { generateMatrixStamp } from './stampGenerator';
 
 export interface DocumentData {
   id: string;
@@ -15,6 +16,7 @@ export interface DocumentData {
     performance?: string;
     position?: string;
     start_date?: string;
+    end_date?: string;
     stipend?: string;
   };
 }
@@ -167,7 +169,14 @@ export const generateCertificatePDF = async (data: DocumentData, logoDataUrl: st
   const minFooterSpace = pageHeight - 15;
   const actualSigY = Math.min(sigY, minFooterSpace - 25);
   
-  // Left signature
+  // Add Matrix Industries circular stamp (centered above signature)
+  const stampDataUrl = await generateMatrixStamp();
+  const stampSize = 52; // Stamp diameter in PDF units
+  const stampX = 34; // Centered above signature (85 - 45/2 = centered at 85)
+  const stampY = actualSigY - 45  ; // Positioned above the signature line
+  doc.addImage(stampDataUrl, 'PNG', stampX, stampY, stampSize, stampSize);
+  
+  // Signature section (left side, mirroring Date of Issue position)
   doc.setLineWidth(0.3);
   doc.setDrawColor(100, 100, 100);
   doc.line(35, actualSigY, 85, actualSigY);
@@ -268,87 +277,67 @@ export const generateOfferLetterPDF = async (data: DocumentData, logoDataUrl: st
   doc.setTextColor(50, 50, 50);
   doc.text('Dear ' + data.student_name.split(' ')[0] + ',', 20, 132);
   
-  // Letter body
+  // Calculate internship dates
+  const startDate = data.additional_fields?.start_date 
+    ? new Date(data.additional_fields.start_date) 
+    : new Date();
+  
+  // Calculate end date: if provided use it, otherwise add 4 weeks (28 days)
+  const endDate = data.additional_fields?.end_date 
+    ? new Date(data.additional_fields.end_date)
+    : new Date(startDate.getTime() + 28 * 24 * 60 * 60 * 1000);
+  
+  const formatDate = (date: Date) => {
+    const day = date.getDate();
+    const suffix = day === 1 || day === 21 || day === 31 ? 'st' : 
+                   day === 2 || day === 22 ? 'nd' : 
+                   day === 3 || day === 23 ? 'rd' : 'th';
+    return `${day}${suffix} ${date.toLocaleDateString('en-US', { month: 'long', year: 'numeric' })}`;
+  };
+  
+  // Letter body with new content
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(60, 60, 60);
+  doc.setFontSize(9.5);
+  
+  const position = data.additional_fields?.position || 'Intern';
   
   const bodyLines = [
-    'We are delighted to offer you an internship position with Matrix Industries. We were',
-    'impressed by your qualifications and believe you will be a valuable addition to our team.',
+    `We are pleased to offer you the position of ${position} at Matrix Industries.`,
+    'This is an educational internship opportunity, designed to provide you with meaningful,',
+    'hands-on experience in your chosen domain.',
+    '',
+    `Your internship is scheduled to begin on ${formatDate(startDate)} and will conclude`,
+    `on ${formatDate(endDate)}, with a total duration of one month (4 weeks).`,
+    '',
+    'By accepting this offer, you acknowledge and agree that your participation in this program',
+    'is not an offer of employment, and successful completion of the internship does not',
+    'guarantee any employment or job offer from Matrix Industries.',
+    '',
+    'You further agree to abide by all company policies applicable to non-employee interns.',
+    'This letter forms the complete understanding between you and Matrix Industries regarding',
+    'your internship and supersedes any prior discussions or agreements. Modifications to this',
+    'letter, if any, must be made in writing and signed by both parties.',
+    '',
+    'We look forward to welcoming you to the Matrix Industries internship program and wish',
+    'you an enriching and successful experience.',
   ];
   
   let yPos = 142;
   bodyLines.forEach(line => {
     doc.text(line, 20, yPos);
-    yPos += 6;
+    yPos += 5.5;
   });
   
-  // Offer details box
+  // Closing and Signature section
   yPos += 8;
-  doc.setFillColor(250, 252, 253);
-  doc.setDrawColor(50, 184, 198);
-  doc.setLineWidth(0.5);
-  doc.roundedRect(20, yPos - 5, pageWidth - 40, 52, 2, 2, 'FD');
-  
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(33, 128, 141);
-  doc.text('INTERNSHIP DETAILS', 25, yPos + 2);
-  
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(60, 60, 60);
-  doc.setFontSize(9.5);
-  
-  const details = [
-    { label: 'Position:', value: data.additional_fields?.position || 'Intern' },
-    { label: 'Department:', value: data.internship_domain },
-    { label: 'Start Date:', value: data.additional_fields?.start_date ? new Date(data.additional_fields.start_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) : 'To be confirmed' },
-    { label: 'Duration:', value: data.additional_fields?.duration || 'As per agreement' },
-  ];
-  
-  if (data.additional_fields?.stipend) {
-    details.push({ label: 'Stipend:', value: data.additional_fields.stipend });
-  }
-  
-  let detailY = yPos + 10;
-  details.forEach(detail => {
-    doc.setFont('helvetica', 'bold');
-    doc.text(detail.label, 25, detailY);
-    doc.setFont('helvetica', 'normal');
-    doc.text(detail.value, 60, detailY);
-    detailY += 7;
-  });
-  
-  // Continuation
-  yPos += 60;
-  doc.setFontSize(10);
-  doc.setFont('helvetica', 'normal');
-  doc.setTextColor(60, 60, 60);
-  
-  const closingLines = [
-    'During your internship, you will gain valuable hands-on experience and work alongside our',
-    'experienced professionals. We are confident that this opportunity will enhance your skills',
-    'and contribute to your professional development.',
-    '',
-    'Please sign and return this letter by ' + new Date(new Date(data.issue_date).getTime() + 7 * 24 * 60 * 60 * 1000).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' }) + ' to confirm',
-    'your acceptance of this offer.',
-  ];
-  
-  closingLines.forEach(line => {
-    doc.text(line, 20, yPos);
-    yPos += 6;
-  });
-  
-  // Closing
-  yPos += 6;
-  doc.text('We look forward to welcoming you to Matrix Industries.', 20, yPos);
-  
-  // Signature section - optimized spacing
-  yPos += 12;
   doc.setFontSize(10);
   doc.text('Sincerely,', 20, yPos);
+  yPos += 5;
+  doc.text('Matrix Industries', 20, yPos);
   
   yPos += 12;
+  // Signature (left side)
   doc.setLineWidth(0.3);
   doc.setDrawColor(100, 100, 100);
   doc.line(20, yPos, 70, yPos);
@@ -363,6 +352,13 @@ export const generateOfferLetterPDF = async (data: DocumentData, logoDataUrl: st
   doc.setTextColor(80, 80, 80);
   doc.text('Human Resources Department', 20, yPos + 10);
   doc.text('Matrix Industries Pvt. Ltd.', 20, yPos + 15);
+  
+  // Add Matrix Industries circular stamp (bottom right side)
+  const stampDataUrl = await generateMatrixStamp();
+  const stampSize = 52; // Stamp diameter in PDF units
+  const stampX = pageWidth - 65; // Right side position
+  const stampY = yPos - 40; // Moved up to avoid footer overlap
+  doc.addImage(stampDataUrl, 'PNG', stampX, stampY, stampSize, stampSize);
   
   // Acceptance section - with proper spacing check
   const acceptY = yPos + 22;
@@ -479,11 +475,18 @@ export const generateLoRPDF = async (data: DocumentData, logoDataUrl: string): P
   const qrDataUrl = await QRCode.toDataURL(qrCodeUrl, { width: 150, margin: 1 });
   doc.addImage(qrDataUrl, 'PNG', pageWidth - 50, 170, 30, 30);
   
-  // Signature
-  doc.text('Best Regards,', 20, yPos + 20);
-  doc.line(20, yPos + 35, 70, yPos + 35);
-  doc.text('Authorized Signatory', 20, yPos + 42);
-  doc.text('Matrix Industries', 20, yPos + 49);
+  // Add Matrix Industries circular stamp (left side, before signature)
+  const stampDataUrl = await generateMatrixStamp();
+  const stampSize = 45; // Stamp diameter in PDF units
+  const stampX = 20; // Far left position
+  const stampY = yPos + 10; // Positioned to not overlap with signature
+  doc.addImage(stampDataUrl, 'PNG', stampX, stampY, stampSize, stampSize);
+  
+  // Signature (positioned to the right of stamp)
+  doc.text('Best Regards,', 55, yPos + 20);
+  doc.line(55, yPos + 35, 105, yPos + 35);
+  doc.text('Authorized Signatory', 55, yPos + 42);
+  doc.text('Matrix Industries', 55, yPos + 49);
   
   // Document ID
   doc.setFontSize(8);
