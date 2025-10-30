@@ -194,9 +194,10 @@ const CreateDocument = () => {
                     onValueChange={(value) => {
                       if (value === 'custom') {
                         setShowCustomDomain(true);
-                        setFormData({ ...formData, internship_domain: '' });
+                        setFormData({ ...formData, internship_domain: '', position: '' });
                       } else {
-                        setFormData({ ...formData, internship_domain: value });
+                        // Auto-set position to domain + " Intern"
+                        setFormData({ ...formData, internship_domain: value, position: `${value} Intern` });
                       }
                     }}
                   >
@@ -232,7 +233,7 @@ const CreateDocument = () => {
                       variant="outline"
                       onClick={() => {
                         setShowCustomDomain(false);
-                        setFormData({ ...formData, internship_domain: '' });
+                        setFormData({ ...formData, internship_domain: '', position: '' });
                       }}
                     >
                       Back
