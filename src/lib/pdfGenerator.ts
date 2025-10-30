@@ -46,97 +46,89 @@ const addHeaderFooter = (doc: jsPDF, logoDataUrl: string) => {
 };
 
 export const generateCertificatePDF = async (data: DocumentData, logoDataUrl: string): Promise<Blob> => {
-  const doc = new jsPDF();
+  // Create landscape document
+  const doc = new jsPDF({
+    orientation: 'landscape',
+    unit: 'mm',
+    format: 'a4'
+  });
+  
   const pageWidth = doc.internal.pageSize.getWidth();
   const pageHeight = doc.internal.pageSize.getHeight();
   
-  // Elegant background gradient effect (using rectangles)
+  // Elegant background
   doc.setFillColor(245, 250, 252);
   doc.rect(0, 0, pageWidth, pageHeight, 'F');
   
-  // Decorative corner elements
+  // Decorative corner accents
   doc.setFillColor(33, 128, 141);
-  doc.triangle(0, 0, 30, 0, 0, 30, 'F');
-  doc.triangle(pageWidth, 0, pageWidth - 30, 0, pageWidth, 30, 'F');
+  doc.triangle(0, 0, 25, 0, 0, 25, 'F');
+  doc.triangle(pageWidth, 0, pageWidth - 25, 0, pageWidth, 25, 'F');
+  doc.triangle(0, pageHeight, 25, pageHeight, 0, pageHeight - 25, 'F');
+  doc.triangle(pageWidth, pageHeight, pageWidth - 25, pageHeight, pageWidth, pageHeight - 25, 'F');
   
-  // Main decorative border with double lines
+  // Main decorative border - double lines
   doc.setDrawColor(33, 128, 141);
   doc.setLineWidth(2);
-  doc.rect(15, 20, pageWidth - 30, pageHeight - 40);
+  doc.rect(12, 12, pageWidth - 24, pageHeight - 24);
   
   doc.setLineWidth(0.5);
-  doc.rect(18, 23, pageWidth - 36, pageHeight - 46);
+  doc.rect(15, 15, pageWidth - 30, pageHeight - 30);
   
   // Inner accent border
   doc.setDrawColor(50, 184, 198);
   doc.setLineWidth(0.3);
-  doc.rect(20, 25, pageWidth - 40, pageHeight - 50);
+  doc.rect(17, 17, pageWidth - 34, pageHeight - 34);
   
-  // Logo and header
-  doc.addImage(logoDataUrl, 'PNG', pageWidth / 2 - 15, 32, 30, 30);
-  
-  // Company name under logo
-  doc.setFontSize(16);
-  doc.setFont('helvetica', 'bold');
-  doc.setTextColor(33, 128, 141);
-  doc.text('MATRIX INDUSTRIES', pageWidth / 2, 68, { align: 'center' });
+  // Header section - Logo (top center) - larger size without company name
+  const headerY = 24; // Moved up by 4 from 28
+  doc.addImage(logoDataUrl, 'PNG', pageWidth / 2 - 18, headerY - 3, 36, 36); // Logo moved down by 5 (from -8 to -3)
   
   doc.setFontSize(9);
   doc.setFont('helvetica', 'italic');
   doc.setTextColor(80, 80, 80);
-  doc.text('Innovation in Technology & Engineering', pageWidth / 2, 74, { align: 'center' });
+  doc.text('Innovation in Technology & Engineering', pageWidth / 2, headerY + 33, { align: 'center' }); // Adjusted Y position
   
-  // Certificate title - larger, bold, no decorative lines
-  doc.setFontSize(28);
+  // Certificate title
+  const titleY = headerY + 48; // Adjusted for larger logo
+  doc.setFontSize(32);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(33, 128, 141);
-  doc.text('INTERNSHIP COMPLETION', pageWidth / 2, 90, { align: 'center' });
+  doc.text('INTERNSHIP COMPLETION CERTIFICATE', pageWidth / 2, titleY, { align: 'center' });
   
-  doc.setFontSize(30);
-  doc.text('CERTIFICATE', pageWidth / 2, 102, { align: 'center' });
-  
-    // Decorative underline
+  // Decorative underline
   doc.setDrawColor(50, 184, 198);
-  doc.setLineWidth(0.5);
-  doc.line(40, 107, pageWidth - 40, 107);
+  doc.setLineWidth(0.8);
+  doc.line(60, titleY + 3, pageWidth - 60, titleY + 3);
   
   // Certificate body
-  doc.setFontSize(11);
+  const bodyY = titleY + 18;
+  doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(60, 60, 60);
-  doc.text('This is to certify that', pageWidth / 2, 122, { align: 'center' });
+  doc.text('This is to certify that', pageWidth / 2, bodyY, { align: 'center' });
   
-  // Student name with decorative box
-  doc.setFillColor(250, 252, 253);
-  doc.setDrawColor(50, 184, 198);
-  doc.setLineWidth(0.3);
-  doc.roundedRect(30, 129, pageWidth - 60, 18, 2, 2, 'FD');
-  
-  doc.setFontSize(24);
+  // Student name without box
+  doc.setFontSize(26);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(33, 128, 141);
-  doc.text(data.student_name.toUpperCase(), pageWidth / 2, 140, { align: 'center' });
+  doc.text(data.student_name.toUpperCase(), pageWidth / 2, bodyY + 18, { align: 'center' });
   
   // Completion text
-  doc.setFontSize(11);
+  doc.setFontSize(12);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(60, 60, 60);
-  doc.text('has successfully completed the internship program in', pageWidth / 2, 158, { align: 'center' });
+  doc.text('has successfully completed the internship program in', pageWidth / 2, bodyY + 32, { align: 'center' });
   
-  // Domain with elegant border and subtle background
-  doc.setFillColor(250, 252, 253); // Very light green tint
-  doc.setDrawColor(50, 184, 198); // Green border
-  doc.setLineWidth(1);
-  doc.roundedRect(40, 164, pageWidth - 80, 16, 3, 3, 'FD');
-  
-  doc.setFontSize(20);
+  // Domain without box
+  doc.setFontSize(22);
   doc.setFont('helvetica', 'bold');
-  doc.setTextColor(39, 151, 86); // Bright green text
-  doc.text(data.internship_domain.toUpperCase(), pageWidth / 2, 174, { align: 'center' });
+  doc.setTextColor(39, 151, 86);
+  doc.text(data.internship_domain.toUpperCase(), pageWidth / 2, bodyY + 50, { align: 'center' });
   
-  // Duration and date info box
-  let infoY = 188;
-  doc.setFontSize(10);
+  // Duration and issue date
+  let infoY = bodyY + 66;
+  doc.setFontSize(11);
   doc.setFont('helvetica', 'normal');
   doc.setTextColor(70, 70, 70);
   
@@ -147,55 +139,49 @@ export const generateCertificatePDF = async (data: DocumentData, logoDataUrl: st
   
   doc.text(`Issue Date: ${new Date(data.issue_date).toLocaleDateString('en-US', { year: 'numeric', month: 'long', day: 'numeric' })}`, pageWidth / 2, infoY, { align: 'center' });
   
-  // QR Code with border - optimized position
-  // Points to configured verification URL (from Settings)
+  // Bottom section - QR Code, Stamp, and Signatures in landscape layout
+  const bottomY = pageHeight - 70; // Moved further up to stay well inside border
+  
+  // QR Code (left side) - positioned lower
   const qrCodeUrl = getVerificationUrl(data.verification_code);
   const qrDataUrl = await QRCode.toDataURL(qrCodeUrl, { width: 300, margin: 1 });
   
   doc.setFillColor(255, 255, 255);
   doc.setDrawColor(50, 184, 198);
   doc.setLineWidth(0.5);
-  doc.roundedRect(pageWidth / 2 - 21, 202, 42, 42, 2, 2, 'FD');
-  doc.addImage(qrDataUrl, 'PNG', pageWidth / 2 - 18, 205, 36, 36);
+  const qrX = 35;
+  const qrY = bottomY + 10; // Move QR code down by 10mm
+  doc.roundedRect(qrX - 2, qrY - 2, 34, 34, 2, 2, 'FD');
+  doc.addImage(qrDataUrl, 'PNG', qrX, qrY, 30, 30);
   
   doc.setFontSize(7);
   doc.setTextColor(100, 100, 100);
-  doc.text('Scan to verify', pageWidth / 2, 249, { align: 'center' });
+  doc.text('Scan to Verify', qrX + 15, qrY + 35, { align: 'center' });
   
-  // Signature section with professional layout - optimized spacing
-  const sigY = 257;
+  // Authorized Signatory (right side) with stamp above
+  const sigX = pageWidth - 80;
   
-  // Check if we have enough space, otherwise adjust
-  const minFooterSpace = pageHeight - 15;
-  const actualSigY = Math.min(sigY, minFooterSpace - 25);
-  
-  // Add Matrix Industries circular stamp (centered above signature)
+  // Stamp above signature - increased size and moved down
   const stampDataUrl = await generateMatrixStamp();
-  const stampSize = 52; // Stamp diameter in PDF units
-  const stampX = 34; // Centered above signature (85 - 45/2 = centered at 85)
-  const stampY = actualSigY - 45  ; // Positioned above the signature line
+  const stampSize = 50; // Increased from 40 to 50
+  const stampX = sigX + 25 - stampSize / 2;
+  const stampY = bottomY - 5; // Moved up from bottomY
   doc.addImage(stampDataUrl, 'PNG', stampX, stampY, stampSize, stampSize);
   
-  // Signature section (left side, mirroring Date of Issue position)
+  // Signature line and text below stamp - decreased by 2.5 more points
   doc.setLineWidth(0.3);
   doc.setDrawColor(100, 100, 100);
-  doc.line(35, actualSigY, 85, actualSigY);
-  doc.setFontSize(9);
+  doc.line(sigX, bottomY + 36.5, sigX + 50, bottomY + 36.5); // Decreased by 2.5 from 39
+  
+  doc.setFontSize(10);
   doc.setFont('helvetica', 'bold');
   doc.setTextColor(60, 60, 60);
-  doc.text('Authorized Signatory', 60, actualSigY + 5, { align: 'center' });
-  doc.setFont('helvetica', 'normal');
-  doc.setFontSize(8);
-  doc.text('Matrix Industries', 60, actualSigY + 10, { align: 'center' });
+  doc.text('Authorized Signatory', sigX + 25, bottomY + 41.5, { align: 'center' }); // Decreased by 2.5 from 44
   
-  // Date stamp
-  doc.line(pageWidth - 85, actualSigY, pageWidth - 35, actualSigY);
-  doc.setFontSize(9);
-  doc.setFont('helvetica', 'bold');
-  doc.text('Date of Issue', pageWidth - 60, actualSigY + 5, { align: 'center' });
   doc.setFont('helvetica', 'normal');
   doc.setFontSize(8);
-  doc.text(new Date(data.issue_date).toLocaleDateString(), pageWidth - 60, actualSigY + 10, { align: 'center' });
+  doc.setTextColor(80, 80, 80);
+  doc.text('Matrix Industries', sigX + 25, bottomY + 46.5, { align: 'center' }); // Decreased by 2.5 from 49
   
   // Footer
   doc.setFontSize(7);

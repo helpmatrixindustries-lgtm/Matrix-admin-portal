@@ -16,6 +16,8 @@ import matrixLogoFull from '@/assets/matrix-logo74923857.jpeg';
 
 const CreateDocument = () => {
   const [loading, setLoading] = useState(false);
+  const [showCustomDomain, setShowCustomDomain] = useState(false);
+  const [showCustomPosition, setShowCustomPosition] = useState(false);
   const [formData, setFormData] = useState({
     type: 'certificate' as DocumentType,
     student_name: '',
@@ -186,14 +188,57 @@ const CreateDocument = () => {
 
               <div className="space-y-2">
                 <Label htmlFor="internship_domain">Internship Domain</Label>
-                <Input
-                  id="internship_domain"
-                  placeholder="e.g., Web Development, Data Science, Marketing"
-                  value={formData.internship_domain}
-                  onChange={(e) => setFormData({ ...formData, internship_domain: e.target.value })}
-                  required
-                  disabled={loading}
-                />
+                {!showCustomDomain ? (
+                  <Select
+                    value={formData.internship_domain}
+                    onValueChange={(value) => {
+                      if (value === 'custom') {
+                        setShowCustomDomain(true);
+                        setFormData({ ...formData, internship_domain: '' });
+                      } else {
+                        setFormData({ ...formData, internship_domain: value });
+                      }
+                    }}
+                  >
+                    <SelectTrigger id="internship_domain">
+                      <SelectValue placeholder="Select a domain" />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="Web Development">Web Development</SelectItem>
+                      <SelectItem value="UI/UX">UI/UX</SelectItem>
+                      <SelectItem value="Digital Marketing">Digital Marketing</SelectItem>
+                      <SelectItem value="Machine Learning">Machine Learning</SelectItem>
+                      <SelectItem value="Data Science">Data Science</SelectItem>
+                      <SelectItem value="Software Development">Software Development</SelectItem>
+                      <SelectItem value="Cyber Security">Cyber Security</SelectItem>
+                      <SelectItem value="Graphics Design">Graphics Design</SelectItem>
+                      <SelectItem value="Android Development">Android Development</SelectItem>
+                      <SelectItem value="Prompt Engineering">Prompt Engineering</SelectItem>
+                      <SelectItem value="custom">Custom (Type your own)</SelectItem>
+                    </SelectContent>
+                  </Select>
+                ) : (
+                  <div className="flex gap-2">
+                    <Input
+                      id="internship_domain"
+                      placeholder="Enter custom domain"
+                      value={formData.internship_domain}
+                      onChange={(e) => setFormData({ ...formData, internship_domain: e.target.value })}
+                      required
+                      disabled={loading}
+                    />
+                    <Button
+                      type="button"
+                      variant="outline"
+                      onClick={() => {
+                        setShowCustomDomain(false);
+                        setFormData({ ...formData, internship_domain: '' });
+                      }}
+                    >
+                      Back
+                    </Button>
+                  </div>
+                )}
               </div>
 
               <div className="space-y-2">
@@ -241,12 +286,56 @@ const CreateDocument = () => {
                 <>
                   <div className="space-y-2">
                     <Label htmlFor="position">Position</Label>
-                    <Input
-                      id="position"
-                      placeholder="e.g., Software Development Intern"
-                      value={formData.position}
-                      onChange={(e) => setFormData({ ...formData, position: e.target.value })}
-                    />
+                    {!showCustomPosition ? (
+                      <Select
+                        value={formData.position}
+                        onValueChange={(value) => {
+                          if (value === 'custom') {
+                            setShowCustomPosition(true);
+                            setFormData({ ...formData, position: '' });
+                          } else {
+                            setFormData({ ...formData, position: value });
+                          }
+                        }}
+                      >
+                        <SelectTrigger id="position">
+                          <SelectValue placeholder="Select a position" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          <SelectItem value="Web Development Intern">Web Development Intern</SelectItem>
+                          <SelectItem value="UI/UX Intern">UI/UX Intern</SelectItem>
+                          <SelectItem value="Digital Marketing Intern">Digital Marketing Intern</SelectItem>
+                          <SelectItem value="Machine Learning Intern">Machine Learning Intern</SelectItem>
+                          <SelectItem value="Data Science Intern">Data Science Intern</SelectItem>
+                          <SelectItem value="Software Development Intern">Software Development Intern</SelectItem>
+                          <SelectItem value="Cyber Security Intern">Cyber Security Intern</SelectItem>
+                          <SelectItem value="Graphics Design Intern">Graphics Design Intern</SelectItem>
+                          <SelectItem value="Android Development Intern">Android Development Intern</SelectItem>
+                          <SelectItem value="Prompt Engineering Intern">Prompt Engineering Intern</SelectItem>
+                          <SelectItem value="custom">Custom (Type your own)</SelectItem>
+                        </SelectContent>
+                      </Select>
+                    ) : (
+                      <div className="flex gap-2">
+                        <Input
+                          id="position"
+                          placeholder="Enter custom position"
+                          value={formData.position}
+                          onChange={(e) => setFormData({ ...formData, position: e.target.value })}
+                          disabled={loading}
+                        />
+                        <Button
+                          type="button"
+                          variant="outline"
+                          onClick={() => {
+                            setShowCustomPosition(false);
+                            setFormData({ ...formData, position: '' });
+                          }}
+                        >
+                          Back
+                        </Button>
+                      </div>
+                    )}
                   </div>
                   <div className="space-y-2">
                     <Label htmlFor="start_date">Start Date</Label>
